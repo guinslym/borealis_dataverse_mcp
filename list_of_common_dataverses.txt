@@ -2,7 +2,7 @@ University, subtree or dataverse, Province
 Algoma University, algoma, Ontario
 Sunnybrook Research Institute, sunnybrook, Ontario
 Acadia University, acadia, Nova Scotia
-Athabasca University, athabascau, Ontario
+Athabasca University, athabascau, Alberta
 Bishops University, bishops, Quebec
 Brandon University, brandon, Manitoba
 Brock University, brock, Ontario
@@ -55,7 +55,7 @@ University of Alberta, ualberta, Alberta
 University of British Columbia, ubc, British Columbia
 University of Calgary, calgary, Alberta
 University of Guelph, guelph, Ontario
-University of Lethbridge, lethbridge, Ontario
+University of Lethbridge, lethbridge, Alberta
 University of Manitoba, manitoba, Manitoba
 University of Northern British Columbia, unbc, British Columbia
 University of Ottawa, ottawa, Ontario

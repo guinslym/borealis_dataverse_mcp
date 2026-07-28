@@ -2,6 +2,11 @@
 import asyncio
 import os
 import re
+import csv
+import io
+import json
+from collections import Counter
+from datetime import datetime, timezone
 import httpx
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -10,6 +15,9 @@ from mcp.types import Tool, TextContent
 # Configuration
 BOREALIS_BASE_URL = "https://borealisdata.ca/api"
 API_KEY = os.environ.get("BOREALIS_API_KEY", "")
+MAX_FILE_BYTES = int(os.environ.get("BOREALIS_MAX_FILE_BYTES", str(5 * 1024 * 1024)))
+DEFAULT_MAX_LINES = int(os.environ.get("BOREALIS_DEFAULT_MAX_LINES", "100"))
+SERVER_VERSION = "0.2.0"
 
 # Mapping of university names to dataverse identifiers
 UNIVERSITY_DATAVERSE_MAP = {
@@ -238,8 +246,16 @@ async def list_tools() -> list[Tool]:
                     },
                     "per_page": {
                         "type": "integer",
-                        "description": "Number of results per page (default: 10, max: 100)",
-                        "default": 10
+                        "description": "Number of results per page (default: 10, min: 1, max: 100)",
+                        "default": 10,
+                        "minimum": 1,
+                        "maximum": 100
+                    },
+                    "start": {
+                        "type": "integer",
+                        "description": "Zero-based search offset for pagination (default: 0)",
+                        "default": 0,
+                        "minimum": 0
                     },
                     "sort": {
                         "type": "string",
@@ -267,6 +283,14 @@ async def list_tools() -> list[Tool]:
                     "city": {
                         "type": "string",
                         "description": "Optional: Filter by the geographic coverage/subject area of datasets (e.g., datasets ABOUT 'Toronto', 'Halifax', 'Vancouver'). This indicates what city the data describes, not where researchers are located."
+                    },
+                    "published_from": {
+                        "type": "string",
+                        "description": "Optional earliest publication date in YYYY-MM-DD format."
+                    },
+                    "published_to": {
+                        "type": "string",
+                        "description": "Optional latest publication date in YYYY-MM-DD format."
                     }
                 },
                 "required": ["query"]
@@ -330,7 +354,15 @@ async def list_tools() -> list[Tool]:
                     },
                     "max_lines": {
                         "type": "integer",
-                        "description": "Maximum number of lines to display (default: 100, maximum: 2000). Increase if the user wants to see more of the file."
+                        "description": "Maximum number of lines to display (default: 100, maximum: 2000).",
+                        "minimum": 1,
+                        "maximum": 2000
+                    },
+                    "start_line": {
+                        "type": "integer",
+                        "description": "One-based starting line for partial retrieval (default: 1).",
+                        "default": 1,
+                        "minimum": 1
                     },
                     "doi": {
                         "type": "string",
@@ -339,6 +371,25 @@ async def list_tools() -> list[Tool]:
                 },
                 "required": ["file_id"]
             }
+        ),
+        Tool(
+            name="profile_tabular_file",
+            description="Profile a public CSV/TSV/text table from a Borealis dataset. Returns row and column counts, inferred delimiter, column types, missing-value counts, distinct counts, and common values. Use this before answering quantitative questions about a tabular file.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "file_id": {"type": "string", "description": "Numeric Borealis file ID."},
+                    "filename": {"type": "string", "description": "Filename, used for delimiter hints."},
+                    "max_rows": {"type": "integer", "description": "Maximum rows to profile (default 100000, max 250000).", "default": 100000, "minimum": 1, "maximum": 250000},
+                    "delimiter": {"type": "string", "description": "Optional delimiter override: comma, tab, semicolon, pipe, or a single character."}
+                },
+                "required": ["file_id"]
+            }
+        ),
+        Tool(
+            name="get_server_status",
+            description="Return server version, Borealis API base URL, authentication state, configured limits, and supported capabilities without exposing secrets.",
+            inputSchema={"type": "object", "properties": {}}
         )
     ]
 
@@ -353,6 +404,10 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         return await list_dataset_files(arguments)
     elif name == "get_dataset_file":
         return await get_dataset_file(arguments)
+    elif name == "profile_tabular_file":
+        return await profile_tabular_file(arguments)
+    elif name == "get_server_status":
+        return await get_server_status(arguments)
     else:
         raise ValueError(f"Unknown tool: {name}")
 
@@ -381,17 +436,16 @@ async def search_datasets(arguments: dict) -> list[TextContent]:
     # The API requires AND/OR/NOT in uppercase; lowercase versions are treated as keywords.
     # Word boundaries prevent false matches inside words (e.g., "Oregon", "android").
     query = re.sub(r'\b(and|or|not)\b', lambda m: m.group(0).upper(), query, flags=re.IGNORECASE)
-    per_page = arguments.get("per_page", 10)
+    per_page = max(1, min(int(arguments.get("per_page", 10)), 100))
+    start = max(0, int(arguments.get("start", 0)))
     sort_field = arguments.get("sort", "relevance")
-    result_type = arguments.get("type")
+    result_type = arguments.get("type") or "dataset"
     dataverse = arguments.get("dataverse")
     country = arguments.get("country")
     province = arguments.get("province")
     city = arguments.get("city")
-    
-    # Validate per_page
-    if per_page > 100:
-        per_page = 100
+    published_from = arguments.get("published_from")
+    published_to = arguments.get("published_to")
     
     # If dataverse is specified, try to map university name to identifier
     if dataverse:
@@ -404,6 +458,8 @@ async def search_datasets(arguments: dict) -> list[TextContent]:
     params = {
         "q": query,
         "per_page": per_page,
+        "start": start,
+        "type": result_type,
     }
     
     # Add sort parameters if not relevance (default)
@@ -439,6 +495,18 @@ async def search_datasets(arguments: dict) -> list[TextContent]:
     
     if city:
         fq_value = f"city:{city}"
+        if "fq" in params:
+            if isinstance(params["fq"], list):
+                params["fq"].append(fq_value)
+            else:
+                params["fq"] = [params["fq"], fq_value]
+        else:
+            params["fq"] = fq_value
+
+    if published_from or published_to:
+        date_from = published_from or "*"
+        date_to = published_to or "*"
+        fq_value = f"publicationDate:[{date_from} TO {date_to}]"
         if "fq" in params:
             if isinstance(params["fq"], list):
                 params["fq"].append(fq_value)
@@ -493,8 +561,16 @@ async def search_datasets(arguments: dict) -> list[TextContent]:
             )]
         
         # Format results with consistent structure
-        result_text = f"Found {total_count} results for '{query}'\n"
-        result_text += f"Showing {len(items)} results:\n\n"
+        retrieved_at = datetime.now(timezone.utc).isoformat()
+        result_text = "# Borealis Search Results\n\n"
+        result_text += f"**Query:** {query}\n"
+        result_text += f"**Object type:** {result_type}\n"
+        if dataverse:
+            result_text += f"**Dataverse subtree:** {dataverse}\n"
+        result_text += f"**Matches:** {total_count:,}\n"
+        result_text += f"**Showing:** {start + 1}-{start + len(items)}\n"
+        result_text += f"**Retrieved (UTC):** {retrieved_at}\n"
+        result_text += f"**Authentication:** {'API token used' if use_auth else 'public access'}\n\n"
         
         for idx, item in enumerate(items, 1):
             item_type = item.get("type", "unknown")
@@ -540,9 +616,9 @@ async def search_datasets(arguments: dict) -> list[TextContent]:
             
             result_text += "\n"
         
-        if total_count > len(items):
-            result_text += f"(Showing {len(items)} of {total_count} total results. "
-            result_text += "Adjust 'per_page' parameter to see more results.)\n"
+        if total_count > start + len(items):
+            next_start = start + len(items)
+            result_text += f"\n**More results available.** Use `start={next_start}` to retrieve the next page.\n"
         
         return [TextContent(type="text", text=result_text)]
         
@@ -948,7 +1024,8 @@ async def get_dataset_file(arguments: dict) -> list[TextContent]:
     """Download and retrieve content of a specific file from a dataset."""
     file_id = arguments.get("file_id", "")
     filename = arguments.get("filename", "file")
-    max_lines = min(int(arguments.get("max_lines", 100)), 2000)
+    max_lines = max(1, min(int(arguments.get("max_lines", DEFAULT_MAX_LINES)), 2000))
+    start_line = max(1, int(arguments.get("start_line", 1)))
     doi = arguments.get("doi", "")
     
     if not file_id:
@@ -983,10 +1060,7 @@ async def get_dataset_file(arguments: dict) -> list[TextContent]:
                 type="text",
                 text=f"⚠️ Cannot retrieve '{filename}' as text — PDFs must be read natively.\n\n"
                      f"**Direct download link:** {download_url}\n\n"
-                     f"**Tip for Claude Desktop users:** Download the file using the link above, "
-                     f"then drag it directly into this Claude Desktop conversation window. "
-                     f"Claude will read the full PDF natively with better fidelity than any "
-                     f"text extraction approach."
+                     f"This server does not render PDF content. Download it and open it with a PDF-capable MCP host or local PDF reader."
             )]
         return [TextContent(
             type="text",
@@ -1019,7 +1093,7 @@ async def get_dataset_file(arguments: dict) -> list[TextContent]:
             content_length = head_response.headers.get("content-length")
             if content_length:
                 file_size = int(content_length)
-                max_size = 5 * 1024 * 1024  # 5MB in bytes
+                max_size = MAX_FILE_BYTES
                 
                 if file_size > max_size:
                     size_mb = file_size / (1024 * 1024)
@@ -1144,8 +1218,14 @@ async def get_dataset_file(arguments: dict) -> list[TextContent]:
             result_text += f"**Total lines:** {total_lines:,}\n"
             result_text += f"**File size:** {len(file_content):,} bytes ({len(file_content) / 1024:.1f} KB)\n\n"
             
+            if start_line > total_lines:
+                return [TextContent(type="text", text=f"Start line {start_line} is beyond the end of the file ({total_lines} lines).") ]
+
+            end_line = min(total_lines, start_line - 1 + max_lines)
+            selected_lines = lines[start_line - 1:end_line]
+
             # Truncate if needed
-            if total_lines > max_lines:
+            if end_line < total_lines:
                 doi_line = f"\n- **Download the full file directly:** Visit the dataset at {doi}" if doi else ""
                 result_text += (
                     f"⚠️ **Note:** File truncated to first {max_lines:,} lines "
@@ -1158,20 +1238,20 @@ async def get_dataset_file(arguments: dict) -> list[TextContent]:
                     f"{doi_line}\n\n"
                 )
                 result_text += "---\n\n"
-                display_lines = lines[:max_lines]
+                display_lines = selected_lines
             else:
                 result_text += "---\n\n"
-                display_lines = lines
+                display_lines = selected_lines
 
             # Add line numbers and content
-            for line_num, line in enumerate(display_lines, 1):
+            for line_num, line in enumerate(display_lines, start_line):
                 # Limit very long lines
                 if len(line) > 500:
                     line = line[:500] + "... (line truncated)"
                 result_text += f"{line_num:4d} | {line}\n"
 
-            if total_lines > max_lines:
-                result_text += f"\n... ({total_lines - max_lines:,} more lines not shown)"
+            if end_line < total_lines:
+                result_text += f"\n... ({total_lines - end_line:,} later lines not shown; next start_line={end_line + 1})"
             
             return [TextContent(type="text", text=result_text)]
         
@@ -1189,6 +1269,115 @@ async def get_dataset_file(arguments: dict) -> list[TextContent]:
     except Exception as e:
         error_msg = f"Unexpected error retrieving file: {str(e)}"
         return [TextContent(type="text", text=error_msg)]
+
+
+def _delimiter_from_argument(value: str | None, filename: str) -> str | None:
+    if value:
+        aliases = {"comma": ",", "tab": "\t", "semicolon": ";", "pipe": "|"}
+        return aliases.get(value.lower(), value if len(value) == 1 else None)
+    lower = filename.lower()
+    if lower.endswith(".tsv"):
+        return "\t"
+    if lower.endswith(".csv"):
+        return ","
+    return None
+
+def _infer_scalar_type(values: list[str]) -> str:
+    nonempty = [v.strip() for v in values if v is not None and v.strip() not in {"", "NA", "N/A", "null", "None"}]
+    if not nonempty:
+        return "empty"
+    def all_int():
+        try:
+            for v in nonempty: int(v)
+            return True
+        except ValueError: return False
+    def all_float():
+        try:
+            for v in nonempty: float(v)
+            return True
+        except ValueError: return False
+    if all_int(): return "integer"
+    if all_float(): return "number"
+    return "text"
+
+async def _download_limited(file_id: str) -> tuple[bytes, str, bool]:
+    api_url = f"{BOREALIS_BASE_URL}/access/datafile/{file_id}"
+    headers = {"X-Dataverse-key": API_KEY} if API_KEY and len(API_KEY) > 10 else {}
+    used_auth = bool(headers)
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.get(api_url, headers=headers, follow_redirects=True)
+        if response.status_code in (401, 403) and used_auth:
+            used_auth = False
+            response = await client.get(api_url, follow_redirects=True)
+        response.raise_for_status()
+        if len(response.content) > MAX_FILE_BYTES:
+            raise ValueError(f"File exceeds configured limit of {MAX_FILE_BYTES:,} bytes")
+        return response.content, response.headers.get("content-type", ""), used_auth
+
+async def profile_tabular_file(arguments: dict) -> list[TextContent]:
+    file_id = str(arguments.get("file_id", "")).strip()
+    filename = arguments.get("filename", "table.csv")
+    max_rows = max(1, min(int(arguments.get("max_rows", 100000)), 250000))
+    if not file_id:
+        return [TextContent(type="text", text="Error: No file ID provided.")]
+    try:
+        raw, content_type, used_auth = await _download_limited(file_id)
+        try:
+            text = raw.decode("utf-8-sig")
+            encoding = "utf-8"
+        except UnicodeDecodeError:
+            text = raw.decode("latin-1")
+            encoding = "latin-1"
+        delimiter = _delimiter_from_argument(arguments.get("delimiter"), filename)
+        sample = text[:65536]
+        if delimiter is None:
+            try:
+                delimiter = csv.Sniffer().sniff(sample, delimiters=",\t;|").delimiter
+            except csv.Error:
+                delimiter = ","
+        reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
+        if not reader.fieldnames:
+            return [TextContent(type="text", text="No header row could be detected in this file.")]
+        columns = [c or f"column_{i+1}" for i, c in enumerate(reader.fieldnames)]
+        values = {c: [] for c in columns}
+        missing = Counter()
+        counts = {c: Counter() for c in columns}
+        rows = 0
+        for row in reader:
+            if rows >= max_rows:
+                break
+            rows += 1
+            for c in columns:
+                v = row.get(c, "")
+                v = "" if v is None else str(v)
+                if v.strip() in {"", "NA", "N/A", "null", "None"}:
+                    missing[c] += 1
+                if len(values[c]) < 1000:
+                    values[c].append(v)
+                counts[c][v] += 1
+        retrieved_at = datetime.now(timezone.utc).isoformat()
+        result = ["# Tabular File Profile", "", f"**File:** {filename}", f"**File ID:** {file_id}", f"**Rows profiled:** {rows:,}" + (f" (limited to max_rows={max_rows:,})" if rows >= max_rows else ""), f"**Columns:** {len(columns)}", f"**Delimiter:** {repr(delimiter)}", f"**Encoding:** {encoding}", f"**Content-Type:** {content_type or 'not provided'}", f"**Retrieved (UTC):** {retrieved_at}", f"**Authentication:** {'API token used' if used_auth else 'public access'}", "", "## Columns", ""]
+        for c in columns:
+            common = ", ".join(f"{json.dumps(k)} ({v})" for k, v in counts[c].most_common(5) if k not in {"", "NA", "N/A", "null", "None"}) or "—"
+            result.extend([f"### {c}", f"- Inferred type: {_infer_scalar_type(values[c])}", f"- Missing values: {missing[c]:,}", f"- Distinct values in profiled rows: {len(counts[c]):,}", f"- Most common values: {common}", ""])
+        result.append("Use this profile as evidence for schema and frequency questions. For exact unique-entity counts, inspect the identifier column explicitly rather than assuming one row equals one person or observation.")
+        return [TextContent(type="text", text="\n".join(result))]
+    except httpx.HTTPStatusError as e:
+        return [TextContent(type="text", text=f"HTTP error {e.response.status_code} while profiling file {file_id}.")]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Unable to profile file: {e}")]
+
+async def get_server_status(arguments: dict) -> list[TextContent]:
+    status = {
+        "server": "borealis-dataverse",
+        "version": SERVER_VERSION,
+        "api_base": BOREALIS_BASE_URL,
+        "authentication_configured": bool(API_KEY and len(API_KEY) > 10),
+        "max_file_bytes": MAX_FILE_BYTES,
+        "default_max_lines": DEFAULT_MAX_LINES,
+        "capabilities": ["dataset_search", "metadata", "file_listing", "text_file_reading", "tabular_profiling", "pagination", "date_filtering", "provenance"]
+    }
+    return [TextContent(type="text", text="# Borealis MCP Server Status\n\n```json\n" + json.dumps(status, indent=2) + "\n```")]
 
 async def main():
     """Run the server using stdio transport."""

@@ -322,3 +322,84 @@ For issues related to:
 - **MCP Protocol**: See https://modelcontextprotocol.io/
 
 ---
+
+---
+
+## Reference-quality additions in version 0.2.0
+
+This updated version moves the project beyond a basic MCP demonstration and makes the results easier to verify and reproduce.
+
+### Search behaviour
+
+- Searches now default to `dataset` objects rather than mixing datasets, files, and Dataverse collections.
+- Search pagination is supported with the `start` parameter.
+- Optional `published_from` and `published_to` date filters are available.
+- Search responses include provenance: normalized query, object type, Dataverse subtree, retrieval time, and authentication mode.
+
+Example:
+
+```text
+Search Borealis for datasets from UBC about salmon, published from 2020-01-01, and show 20 results.
+```
+
+To retrieve the next page, ask the client to repeat the search using the `start` value returned by the tool.
+
+### Tabular file profiling
+
+The `profile_tabular_file` tool profiles public CSV, TSV, and other delimited text files before the language model answers quantitative questions. It reports:
+
+- rows and columns profiled;
+- delimiter and encoding;
+- inferred column types;
+- missing-value counts;
+- distinct-value counts; and
+- the most common values in each column.
+
+This reduces unsupported assumptions such as treating every physical row as a unique participant or observation.
+
+Example workflow:
+
+```text
+1. List the files in DOI 10.xxxx/xxxxx.
+2. Profile the main CSV file.
+3. Based on the profile, describe its variables and regional coverage.
+```
+
+### Partial file retrieval
+
+`get_dataset_file` now supports a one-based `start_line` parameter in addition to `max_lines`. This allows a client to retrieve later sections of a long text file without repeatedly returning the beginning.
+
+### Server diagnostics
+
+The `get_server_status` tool returns the server version, API base URL, configured size limits, authentication state, and supported capabilities. It never returns the API token.
+
+### Important interpretation rules
+
+- Institution filters identify the Dataverse collection where a dataset is deposited.
+- Geographic filters identify what region the dataset is about.
+- A result count is a count of matching Borealis records under the selected filters, not a judgment that every record is equally relevant.
+- Tabular profiles describe the rows inspected. Exact counts of people, fish, sites, or other entities require checking the appropriate identifier column.
+- Access to unpublished or restricted content remains subject to the permissions attached to the supplied Borealis API token.
+
+## Development installation
+
+A `pyproject.toml` and starter test suite are included in the downloadable package.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev,docx]"
+pytest
+```
+
+Environment variables:
+
+```text
+BOREALIS_API_KEY             Optional Borealis API token
+BOREALIS_MAX_FILE_BYTES      Maximum downloaded file size; default 5242880
+BOREALIS_DEFAULT_MAX_LINES   Default text-file line limit; default 100
+```
+
+## Recommended production work
+
+The server remains a single-file implementation for ease of installation. Before a larger production deployment, split the API client, schemas, institution mappings, file parsers, and MCP tool handlers into separate modules. Additional desirable work includes structured MCP outputs, citation export, richer research-file parsers, dataset-version selection, and automated validation of institution aliases.
