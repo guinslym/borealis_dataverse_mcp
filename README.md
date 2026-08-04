@@ -1,405 +1,189 @@
-# Borealis Dataverse MCP Server
+# Borealis Research Toolkit
 
-This is an experimentation project and a work in progress. It is a custom MCP (Model Context Protocol) server that runs locally and enables a tool like Claude Desktop to search the public [Borealis Dataverse](https://borealisdata.ca) - Canada's research data repository - directly from conversations.
+A reusable, open-source toolkit for discovering and inspecting research datasets in [Borealis Dataverse](https://borealisdata.ca). The same Borealis research functions are available through:
 
-**Note**: This MCP server was built with help from Claude for the Python parts.
+- **Local stdio MCP** for Claude Desktop and other local MCP hosts
+- **Streamable HTTP MCP** for ChatGPT and other remote MCP clients
+- **REST API** for applications that do not support MCP
 
-![Screenshot of query and results](screenshots/QueryResults_20260213.jpg) 
-![Screenshot of asking for more info about a dataset](screenshots/TellMeMore2.jpg)
-![Screenshot of querying the data itself](screenshots/TellMeMore3_TabDataQuestion.jpg)
+This project began as an introduction to creating an MCP server. Version 0.3.0 reorganizes it as a maintainable research toolkit rather than a single-host demonstration.
 
-## What It Does
+## Capabilities
 
-This connector allows:
-- Searching through research datasets from Canadian institutions
-- Filtering results by specific institutions (70+ Canadian institutions supported)
-- Filtering by geographic coverage (country, province/state, city that the data is about)
-- Returning formatted results with titles, descriptions, DOI links, and authors
-- Accessing both published and unpublished datasets (unpublished only with API key and access permissions)
-- Retrieving dataset metadata when asking for more information about specific datasets
-- Listing files within datasets with filtering and pagination
-- Retrieving and viewing text-based dataset files directly in chat (under 5MB, configurable line limit)
-- Boolean operators (AND/OR/NOT) supported in searches, case-insensitive
+- Dataset-only search by default
+- Institution/Dataverse subtree filtering
+- Geographic-coverage filtering by country, province/state, or city
+- Boolean search operators (`AND`, `OR`, `NOT`)
+- Pagination, sorting, and publication-date filters
+- Complete deposited dataset metadata
+- Version-aware file listing
+- Small text and Word-file retrieval with line ranges
+- CSV/TSV profiling: rows, columns, missing values, distinct values, common values, and numeric ranges
+- Structured provenance and interpretation warnings
+- Optional Borealis API token for content visible to that token
 
-### Example Queries
+## Important distinctions
 
-- "Search Borealis for datasets about pollination"
-- "Use my Borealis search tool to find datasets from UofT about bees"
-- "Show me datasets from the last 5 years from UBC about forestry"
-- "Find datasets about healthcare in Saskatchewan"
-- "Tell me more about the SynPAIN dataset"
-- "What files are in this dataset?"
-- "Can we look at the readme file together?"
+An **institution filter** limits results to a publishing Dataverse subtree. A **geographic filter** describes the place the dataset is about. For example, a dataset about Alberta may have been deposited by a researcher at an Ontario institution.
 
-## Prerequisites
-
-- Claude Desktop (Claude Desktop is used here in the instructions as an example)
-- Python 3.7+
-- A Borealis account and API key (optional - public searches work without authentication)
+The toolkit reports deposited metadata and computed file statistics. It does not assume that one row represents one person, sample, or observation unless the dataset documentation establishes that interpretation.
 
 ## Installation
 
-### 1. Install Required Dependencies
-
 ```bash
-pip install mcp httpx python-docx
-```
-
-`python-docx` is required for Word document (`.docx`) extraction. If you skip it, the server will still work — `.docx` files will return a download link with instructions to install the library.
-
-### 2. Clone This Repository
-
-```bash
-git clone https://github.com/jesswhyte/borealis_dataverse_mcp.git
+git clone https://github.com/guinslym/borealis_dataverse_mcp.git
 cd borealis_dataverse_mcp
+python -m venv .venv
 ```
 
-### 3. Make the Server Executable
+Windows Command Prompt:
+
+```cmd
+.venv\Scripts\activate
+pip install -e ".[docx]"
+```
+
+macOS/Linux:
 
 ```bash
-chmod +x borealis_server.py
+source .venv/bin/activate
+pip install -e ".[docx]"
 ```
 
-### 4. Get Your Borealis API Key (Optional)
+Copy `.env.example` to `.env` and add a Borealis token only when authenticated access is needed. Public searches work without one.
 
-1. Go to https://borealisdata.ca
-2. Log in or create an account
-3. Navigate to your account settings
-4. Generate an API token
-5. Copy the token (format: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`)
-
-### 5. Configure Claude Desktop
-
-Edit your Claude Desktop configuration file, e.g. if you're on a Mac:
+## Run as a local MCP server
 
 ```bash
-nano ~/Library/Application\ Support/Claude/claude_desktop_config.json
+borealis-mcp
 ```
 
-Add the following configuration (note you will need to change the path to borealis_server.py and edit your API key):
+Backward-compatible command:
+
+```bash
+python borealis_server.py
+```
+
+Example Claude Desktop configuration:
 
 ```json
 {
   "mcpServers": {
-    "borealis-dataverse": {
-      "command": "python3",
-      "args": [
-        "/absolute/path/to/borealis_server.py"
-      ],
+    "borealis-research-toolkit": {
+      "command": "C:\\absolute\\path\\to\\.venv\\Scripts\\python.exe",
+      "args": ["C:\\absolute\\path\\to\\borealis_server.py"],
       "env": {
-        "BOREALIS_API_KEY": "your-api-key-here"
+        "BOREALIS_API_KEY": "optional-token"
       }
     }
   }
 }
 ```
 
-**Important**: 
-- Replace `/absolute/path/to/borealis_server.py` with the full path to your cloned repository
-- Replace `your-api-key-here` with your actual Borealis API key
-- If you don't have an API key, omit the `env` section entirely - public searches will still work
-
-### 6. Restart Claude Desktop
-
-- Quit Claude Desktop completely (⌘+Q)
-- Reopen Claude Desktop
-
-### 7. Verify Installation
-
-Check the logs to confirm the server started successfully:
+## Run for ChatGPT using Streamable HTTP MCP
 
 ```bash
-cat ~/Library/Logs/Claude/mcp*.log | grep borealis
+borealis-mcp-http
 ```
 
-You should see messages indicating the server started and connected.
+The default MCP endpoint is:
 
-### 8. Test It
-
-Open a **new conversation** in Claude Desktop and try:
-
-```
-Search Borealis for datasets about pelagic species from UBC
+```text
+http://localhost:8000/mcp
 ```
 
-## Usage
+ChatGPT requires a reachable remote MCP endpoint. For testing from a local machine, use an approved secure tunnel; for shared use, deploy behind HTTPS and add appropriate authentication. See [`docs/CHATGPT.md`](docs/CHATGPT.md).
 
-### Basic Search
-
-```
-Search Borealis for datasets about [your topic]
-```
-
-### Search by Institution
-
-```
-Find datasets from [Institution Name] about [topic]
-```
-
-Supported institution formats:
-- Full names: "University of Toronto", "McGill University"
-- Some short names: "UBC", "U of T"
-- Common abbreviations: "UAlberta", "UWaterloo"
-
-### Search by Geographic Coverage
-
-```
-Find datasets about [city/province/country]
-```
-
-Note: Geographic filters indicate what region the data is *about* (e.g., "datasets about Halifax"), not where the researchers are located.
-
-### Get More Information
-
-After viewing search results, you can ask for detailed metadata:
-
-```
-Tell me more about the [dataset name]
-```
-
-This retrieves metadata including descriptions, all authors with affiliations, keywords, license details, and file information.
-
-### Options
-
-The tool supports:
-- **Number of results**: Request more or fewer results (max 100) in prompt
-- **Sorting**: Sort by relevance (default), date (newest first), or name (alphabetical)
-- **Type filtering**: Filter by dataset, dataverse, or file
-- **Combined filters**: Mix university, geographic, and keyword filters in a single query
-
-## Supported Institutions
-
-Includes mappings for 70+ Canadian institutions. See `borealis_server.py` for the complete list.
-
-## Tools Available
-
-The MCP server has four tools:
-
-### 1. search_datasets
-Search for datasets. Supports boolean operators (AND/OR/NOT) — case-insensitive, automatically normalized.
-
-### 2. get_dataset_metadata
-Retrieve metadata for a specific dataset
-
-### 3. list_dataset_files
-List all files in a specific dataset with support for:
-- Pagination (limit and offset parameters)
-- File type filtering (search by extension or filename)
-- File metadata (size, type, access restrictions)
-- MD5 checksums for verification
-- File IDs for retrieval
-
-### 4. get_dataset_file
-Download and retrieve file content with intelligent handling:
-
-- Text-based files (CSV, TXT, DAT, R, Python, etc.) displayed directly in chat
-- Word documents (`.docx`) extracted as plain text with heading structure preserved (requires `python-docx`)
-- 5MB maximum file size for chat display
-- Configurable line limit (`max_lines`, default 100, max 2000); when truncated, response explains the limit and offers to re-fetch with a higher value
-- Pass `doi` to include a direct download link in truncation messages
-- PDFs return a direct download URL and a Claude Desktop drag-and-drop tip
-- Other binary files return a direct download URL
-- File format detection and validation
-
-## Architecture
-
-### Components
-
-- **Language**: Python 3
-- **MCP SDK**: Official Python MCP library from Anthropic
-- **HTTP Library**: httpx for async API calls
-- **Configuration**: Environment variables and JSON config file
-
-### How It Works
-
-1. Receives a search or metadata request from the user
-2. The MCP server translates institution names to dataverse identifiers and formats queries
-3. The server queries the Borealis API with appropriate filters
-4. Results are parsed and formatted
-5. Returns structured results with DOI links and metadata
-
-## Troubleshooting
-
-### Server Not Connecting
-
-**Give it a second or restart Claude**
-Sometimes the MCP server doesn't start up fast enough, try restarting Claude and give it a second before attempting again. 
-
-**Check the logs:**
-For example...
+## Run the optional REST API
 
 ```bash
-cat ~/Library/Logs/Claude/mcp*.log | tail -50
+borealis-api
 ```
 
-**Common issues:**
-- Verify the file path in your config is correct and absolute
-- Ensure the Python file is executable (`chmod +x borealis_server.py`)
-- Check that Python 3 is available: `which python3`
+Useful routes:
 
-### API Authentication Errors
+```text
+GET /health
+GET /v1/search?q=pollination&institution=UBC
+GET /v1/datasets/metadata?identifier=doi:10.5683/SP3/...
+GET /v1/datasets/files?identifier=doi:10.5683/SP3/...
+GET /v1/files/{file_id}/text?filename=README.txt
+GET /v1/files/{file_id}/profile?filename=data.csv
+```
 
-The server automatically falls back to public search if authentication fails. To verify your API key:
+Interactive REST documentation is available at `/docs`.
+
+## Docker
 
 ```bash
-curl -H "X-Dataverse-key: YOUR_KEY" "https://borealisdata.ca/api/search?q=test"
+cp .env.example .env
+docker compose up --build
 ```
 
-### Tool Not Appearing
+The container runs the Streamable HTTP MCP server by default.
 
-- Ensure you started a **new conversation** after restarting Claude Desktop
-- MCP tools only load into conversations created after the server connects
-- Check that the server shows as connected in Claude Desktop
+## MCP tools
 
-## Development
+### `search_datasets`
+Returns structured dataset results, DOI URLs, authors, pagination fields, scope, and provenance.
 
-### Extending the Server
+### `get_dataset_metadata`
+Returns deposited metadata for a DOI or numeric dataset ID without silently shortening the source metadata.
 
-To add additional tools:
+### `list_dataset_files`
+Returns file IDs, names, formats, sizes, restrictions, checksums, download URLs, and dataset version.
 
-1. Add the tool definition to `list_tools()`
-2. Implement the handler function
-3. Add the handler to `call_tool()`
+### `get_dataset_file`
+Returns a bounded line range from a small text or `.docx` file. Unsupported binary files are not misrepresented as text.
 
-See the Borealis API documentation for available endpoints: https://borealisdata.ca/guides/en/latest/api/
+### `profile_tabular_file`
+Profiles CSV or TSV content. Results include a warning against interpreting row counts as entity counts without documentation.
 
-### Testing
+### `get_server_status`
+Returns toolkit version, API target, configured limits, authentication state, and available capabilities.
 
-Test the server directly:
+## Project structure
+
+```text
+src/borealis_toolkit/
+  client.py          Borealis HTTP access and bounded downloads
+  service.py         Host-neutral research functions
+  mcp_server.py      stdio and Streamable HTTP MCP transports
+  rest_api.py        FastAPI routes
+  institutions.py    Institution aliases
+  models.py          Structured results and provenance
+  config.py          Environment configuration
+```
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the design.
+
+## Testing
 
 ```bash
-cd /path/to/borealis-mcp-server
-python3 borealis_server.py
+pip install -e ".[dev,docx]"
+pytest
+ruff check src tests
 ```
 
-The server should start and wait for input without errors.
+## Security and privacy
 
-## Technical Notes
+- Never commit `.env` or an API token.
+- A token can expose restricted content available to its owner; deploy authenticated access accordingly.
+- Do not expose the development HTTP server directly to the public internet.
+- File downloads are bounded by `BOREALIS_MAX_FILE_BYTES`.
+- Results and downloaded dataset content may contain untrusted text. Hosts should treat it as data, not instructions.
 
-- The server uses async/await for non-blocking API calls
-- Authentication is optional; public searches work without an API key
-- Institution name matching is case-insensitive
-- The `subtree` parameter filters results to specific dataverses
-- Geographic filters use the `fq` (filter query) parameter
-- Results are limited to 100 per request (Borealis API limit)
-- Metadata is retrieved in JSON-LD format and parsed for display
-- It uses MCP’s stdio transport, so it talks over standard input and output instead of using HTTP. It must be started by an MCP-compatible host (for example, Claude Desktop) and does not run as an HTTP server, so it cannot be started with uvicorn or opened in a browser.
+## Known limitations
 
-## Known Limitations
-
-- Geographic filters indicate dataset subject matter, not researcher location
-- Regional groupings (e.g., "Toronto-based research" spanning multiple institutions) not yet implemented
-- Some MCP server startup timing issues may require restarting Claude Desktop
-
-## Future Improvements
-
-Areas for potential enhancement:
-
-- Code refactoring (split this up into config, tools). It's a little unwieldy. 
-- Regional institution groupings (e.g., all Toronto institutions)
-- Broader file download capabilities
-- Better error handling and user feedback
-- Expanded geographic mappings
-- Date range filtering
-- Could add an HTTP based MCP interface so it works with OpenAI style connectors.
+- Proprietary binary research formats such as SPSS, Stata, Excel, PDF, and archives are listed but not parsed in this release.
+- Tabular profiling reads CSV/TSV data into the configured bounded download size.
+- Institution aliases are maintained locally and should be checked periodically against Borealis collections.
+- ChatGPT app availability, setup menus, and deployment requirements depend on the user’s plan and current OpenAI features.
 
 ## License
 
-GPLv3 
+GPLv3. See [`LICENSE`](LICENSE).
 
 ## Acknowledgments
 
-- Built using the [Model Context Protocol](https://modelcontextprotocol.io/)
-- Developed with a lot of assistance from Claude 
-- Powered by [Borealis Dataverse](https://borealisdata.ca). Borealis has high quality metadata, a well-structured API, and clear documentation. The connector depends on that foundation.
-
-## Support
-
-For issues related to:
-- **This MCP server**: Open an issue in this repository
-- **Borealis API**: Visit https://borealisdata.ca/guides/
-- **Claude Desktop**: Contact Anthropic support
-- **MCP Protocol**: See https://modelcontextprotocol.io/
-
----
-
----
-
-## Reference-quality additions in version 0.2.0
-
-This updated version moves the project beyond a basic MCP demonstration and makes the results easier to verify and reproduce.
-
-### Search behaviour
-
-- Searches now default to `dataset` objects rather than mixing datasets, files, and Dataverse collections.
-- Search pagination is supported with the `start` parameter.
-- Optional `published_from` and `published_to` date filters are available.
-- Search responses include provenance: normalized query, object type, Dataverse subtree, retrieval time, and authentication mode.
-
-Example:
-
-```text
-Search Borealis for datasets from UBC about salmon, published from 2020-01-01, and show 20 results.
-```
-
-To retrieve the next page, ask the client to repeat the search using the `start` value returned by the tool.
-
-### Tabular file profiling
-
-The `profile_tabular_file` tool profiles public CSV, TSV, and other delimited text files before the language model answers quantitative questions. It reports:
-
-- rows and columns profiled;
-- delimiter and encoding;
-- inferred column types;
-- missing-value counts;
-- distinct-value counts; and
-- the most common values in each column.
-
-This reduces unsupported assumptions such as treating every physical row as a unique participant or observation.
-
-Example workflow:
-
-```text
-1. List the files in DOI 10.xxxx/xxxxx.
-2. Profile the main CSV file.
-3. Based on the profile, describe its variables and regional coverage.
-```
-
-### Partial file retrieval
-
-`get_dataset_file` now supports a one-based `start_line` parameter in addition to `max_lines`. This allows a client to retrieve later sections of a long text file without repeatedly returning the beginning.
-
-### Server diagnostics
-
-The `get_server_status` tool returns the server version, API base URL, configured size limits, authentication state, and supported capabilities. It never returns the API token.
-
-### Important interpretation rules
-
-- Institution filters identify the Dataverse collection where a dataset is deposited.
-- Geographic filters identify what region the dataset is about.
-- A result count is a count of matching Borealis records under the selected filters, not a judgment that every record is equally relevant.
-- Tabular profiles describe the rows inspected. Exact counts of people, fish, sites, or other entities require checking the appropriate identifier column.
-- Access to unpublished or restricted content remains subject to the permissions attached to the supplied Borealis API token.
-
-## Development installation
-
-A `pyproject.toml` and starter test suite are included in the downloadable package.
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev,docx]"
-pytest
-```
-
-Environment variables:
-
-```text
-BOREALIS_API_KEY             Optional Borealis API token
-BOREALIS_MAX_FILE_BYTES      Maximum downloaded file size; default 5242880
-BOREALIS_DEFAULT_MAX_LINES   Default text-file line limit; default 100
-```
-
-## Recommended production work
-
-The server remains a single-file implementation for ease of installation. Before a larger production deployment, split the API client, schemas, institution mappings, file parsers, and MCP tool handlers into separate modules. Additional desirable work includes structured MCP outputs, citation export, richer research-file parsers, dataset-version selection, and automated validation of institution aliases.
+Powered by the Borealis Dataverse API and built using the Model Context Protocol. The project’s initial Python implementation was developed with substantial assistance from Claude; the toolkit refactor was developed with assistance from ChatGPT.

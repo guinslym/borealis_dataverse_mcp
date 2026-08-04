@@ -3,26 +3,41 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "borealis-dataverse-mcp"
-version = "0.2.0"
-description = "MCP server for discovering and inspecting research datasets in Borealis Dataverse"
+name = "borealis-research-toolkit"
+version = "0.3.0"
+description = "Reusable MCP and REST research toolkit for Borealis Dataverse"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "GPL-3.0-only"}
+authors = [{name = "Borealis Research Toolkit contributors"}]
 dependencies = [
-  "mcp>=1.2,<2",
+  "mcp>=1.9,<2",
   "httpx>=0.27,<1",
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.34,<1",
 ]
 
 [project.optional-dependencies]
 docx = ["python-docx>=1.1,<2"]
-dev = ["pytest>=8,<9", "pytest-asyncio>=0.23,<1"]
+dev = [
+  "pytest>=8,<10",
+  "pytest-asyncio>=0.23,<2",
+  "respx>=0.22,<1",
+  "ruff>=0.9,<1",
+]
 
 [project.scripts]
-borealis-dataverse-mcp = "borealis_server:main"
+borealis-mcp = "borealis_toolkit.mcp_server:main"
+borealis-mcp-http = "borealis_toolkit.mcp_server:main_http"
+borealis-api = "borealis_toolkit.rest_server:main"
 
-[tool.setuptools]
-py-modules = ["borealis_server"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
