@@ -32,7 +32,15 @@ async def search_datasets(
     date_from: str | None = None,
     date_to: str | None = None,
 ) -> dict:
-    """Search Borealis. Dataset-only is the default. Returns structured results and provenance."""
+    """Search Borealis. Dataset-only is the default. Returns structured results and provenance.
+
+    Borealis combines bare terms with OR, so a multi-word title matches thousands of unrelated
+    records. Wrap a known survey or dataset title in double quotes to search it as a phrase:
+    '"Canadian Community Health Survey"' returns the survey itself, while the unquoted words
+    return unrelated health records. Add unquoted terms such as a year alongside a quoted phrase
+    to rank matching cycles first. Prefer the default relevance sort when the title is known,
+    because sorting by date discards relevance entirely.
+    """
     result = await service.search_datasets(
         query,
         institution=institution,

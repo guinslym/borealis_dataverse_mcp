@@ -7,7 +7,7 @@ ChatGPT cannot connect directly to the local stdio process. Run the Streamable H
 ```bash
 python -m venv .venv
 .venv\Scripts\activate        # Windows
-pip install -e ".[dev,docx]"
+pip install -e ".[dev,docx,pdf]"
 borealis-mcp-http
 ```
 

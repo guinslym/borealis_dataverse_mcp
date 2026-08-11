@@ -161,7 +161,7 @@ class BorealisService:
         start_line = max(1, int(start_line))
         max_lines = max(1, min(int(max_lines), 2000))
         suffix = "." + filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
-        if suffix and suffix not in _TEXT_EXTENSIONS and suffix != ".docx":
+        if suffix and suffix not in _TEXT_EXTENSIONS and suffix not in {".docx", ".pdf"}:
             raise BorealisUnsupportedFileError(f"{filename} is not a supported text format.")
         raw, content_type, used_auth = await self.client.download_limited(str(file_id))
         if suffix == ".docx":
@@ -172,6 +172,20 @@ class BorealisService:
             doc = Document(io.BytesIO(raw))
             text = "\n".join(p.text for p in doc.paragraphs)
             encoding = "docx"
+        elif suffix == ".pdf":
+            try:
+                from pypdf import PdfReader
+            except ImportError as exc:
+                raise BorealisUnsupportedFileError("Install the 'pdf' optional dependency to read PDF files.") from exc
+            reader = PdfReader(io.BytesIO(raw))
+            # Scanned documentation carries no text layer, so an empty extraction is reported
+            # rather than returned as an empty file.
+            text = "\n".join(page.extract_text() or "" for page in reader.pages)
+            if not text.strip():
+                raise BorealisUnsupportedFileError(
+                    f"{filename} has no extractable text layer and may be a scanned document."
+                )
+            encoding = "pdf"
         else:
             try:
                 text = raw.decode("utf-8-sig")

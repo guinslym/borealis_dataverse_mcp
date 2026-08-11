@@ -17,7 +17,7 @@ This project began as an introduction to creating an MCP server. Version 0.3.0 r
 - Pagination, sorting, and publication-date filters
 - Complete deposited dataset metadata
 - Version-aware file listing
-- Small text and Word-file retrieval with line ranges
+- Text, Word, and PDF retrieval with line ranges, covering survey user guides and codebooks
 - CSV/TSV profiling: rows, columns, missing values, distinct values, common values, and numeric ranges
 - Structured provenance and interpretation warnings
 - Optional Borealis API token for content visible to that token
@@ -40,14 +40,14 @@ Windows Command Prompt:
 
 ```cmd
 .venv\Scripts\activate
-pip install -e ".[docx]"
+pip install -e ".[docx,pdf]"
 ```
 
 macOS/Linux:
 
 ```bash
 source .venv/bin/activate
-pip install -e ".[docx]"
+pip install -e ".[docx,pdf]"
 ```
 
 Copy `.env.example` to `.env` and add a Borealis token only when authenticated access is needed. Public searches work without one.
@@ -187,7 +187,7 @@ Returns deposited metadata for a DOI or numeric dataset ID without silently shor
 Returns file IDs, names, formats, sizes, restrictions, checksums, download URLs, and dataset version.
 
 ### `get_dataset_file`
-Returns a bounded line range from a small text or `.docx` file. Unsupported binary files are not misrepresented as text.
+Returns a bounded line range from a text, `.docx`, or `.pdf` file. PDF text extraction requires the `pdf` extra. A scanned PDF with no text layer is reported as such rather than returned empty, and unsupported binary files are not misrepresented as text.
 
 ### `profile_tabular_file`
 Profiles CSV or TSV content. Results include a warning against interpreting row counts as entity counts without documentation.
@@ -213,7 +213,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the design.
 ## Testing
 
 ```bash
-pip install -e ".[dev,docx]"
+pip install -e ".[dev,docx,pdf]"
 pytest
 ruff check src tests
 ```
@@ -228,7 +228,8 @@ ruff check src tests
 
 ## Known limitations
 
-- Proprietary binary research formats such as SPSS, Stata, Excel, PDF, and archives are listed but not parsed in this release.
+- Proprietary binary research formats such as SPSS, Stata, Excel, and archives are listed but not parsed in this release.
+- Scanned PDFs without a text layer cannot be read; OCR is out of scope.
 - Tabular profiling reads CSV/TSV data into the configured bounded download size.
 - Institution aliases are maintained locally and should be checked periodically against Borealis collections.
 - Connector and app availability, setup menus, and deployment requirements depend on the user’s plan and on current Anthropic and OpenAI features.
