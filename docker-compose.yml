@@ -4,5 +4,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      # The server binds 127.0.0.1 by default, which is unreachable from outside the container.
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8000
     ports:
       - "8000:8000"

@@ -2,8 +2,8 @@
 
 A reusable, open-source toolkit for discovering and inspecting research datasets in [Borealis Dataverse](https://borealisdata.ca). The same Borealis research functions are available through:
 
-- **Local stdio MCP** for Claude Desktop and other local MCP hosts
-- **Streamable HTTP MCP** for ChatGPT and other remote MCP clients
+- **Local stdio MCP** for Claude Desktop, Claude Code, and other local MCP hosts
+- **Streamable HTTP MCP** for Claude on the web, ChatGPT, and other remote MCP clients
 - **REST API** for applications that do not support MCP
 
 This project began as an introduction to creating an MCP server. Version 0.3.0 reorganizes it as a maintainable research toolkit rather than a single-host demonstration.
@@ -80,6 +80,47 @@ Example Claude Desktop configuration:
 }
 ```
 
+## Connect to Claude (web)
+
+Claude on the web cannot start a local process, so the stdio configuration above applies only to Claude Desktop and Claude Code. Claude web reaches the toolkit as a **remote MCP endpoint over public HTTPS**.
+
+### 1. Run the Streamable HTTP server
+
+```bash
+borealis-mcp-http
+```
+
+The endpoint is served at `http://localhost:8000/mcp`.
+
+### 2. Publish it over HTTPS
+
+A secure tunnel is enough for a temporary test:
+
+```bash
+cloudflared tunnel --url http://localhost:8000
+```
+
+Cloudflare prints an address such as `https://<subdomain>.trycloudflare.com`. Append `/mcp` to form the connector URL. That address stops working when the tunnel stops.
+
+For shared or long-lived access, deploy the container behind a real HTTPS host and put authentication in front of it.
+
+### 3. Add the custom connector
+
+1. Open **Settings → Connectors** on claude.ai.
+2. Choose **Add custom connector**.
+3. Enter the full HTTPS endpoint, ending in `/mcp`.
+4. Start a chat and enable the toolkit from the tools menu.
+
+Custom connectors require a paid Claude plan.
+
+### 4. Confirm the tools respond
+
+- “Search Borealis for dementia datasets from University of Toronto.”
+- “Show the full metadata for that dataset and keep the DOI.”
+- “List the CSV files in it and profile the largest one.”
+
+A published endpoint is reachable by anyone who learns the URL. When `BOREALIS_API_KEY` is set, those requests query Borealis with your token and can reach content restricted to you. Add authentication before leaving an endpoint running.
+
 ## Run for ChatGPT using Streamable HTTP MCP
 
 ```bash
@@ -120,7 +161,11 @@ cp .env.example .env
 docker compose up --build
 ```
 
-The container runs the Streamable HTTP MCP server by default.
+The container runs the Streamable HTTP MCP server by default and publishes `http://localhost:8000/mcp` on the host.
+
+`docker-compose.yml` sets `MCP_HOST=0.0.0.0`. The server binds `127.0.0.1` by default, which no published port can reach from outside the container. Keep the default when running `borealis-mcp-http` directly on a host, and change it only behind a tunnel or reverse proxy.
+
+FastMCP's own `FASTMCP_HOST` and `FASTMCP_PORT` variables are read through pydantic-settings, which silently fails to resolve them on current releases. Use `MCP_HOST` and `MCP_PORT`, which `main_http` applies directly.
 
 ## MCP tools
 
@@ -178,7 +223,7 @@ ruff check src tests
 - Proprietary binary research formats such as SPSS, Stata, Excel, PDF, and archives are listed but not parsed in this release.
 - Tabular profiling reads CSV/TSV data into the configured bounded download size.
 - Institution aliases are maintained locally and should be checked periodically against Borealis collections.
-- ChatGPT app availability, setup menus, and deployment requirements depend on the user’s plan and current OpenAI features.
+- Connector and app availability, setup menus, and deployment requirements depend on the user’s plan and on current Anthropic and OpenAI features.
 
 ## License
 

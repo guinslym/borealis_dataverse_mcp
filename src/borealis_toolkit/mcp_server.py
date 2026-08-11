@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
@@ -100,7 +101,11 @@ def main() -> None:
 
 
 def main_http() -> None:
-    """Run Streamable HTTP MCP for ChatGPT and other remote MCP clients."""
+    """Run Streamable HTTP MCP for Claude web, ChatGPT, and other remote MCP clients."""
+    # FastMCP reads FASTMCP_HOST and FASTMCP_PORT through pydantic-settings, which silently
+    # fails to resolve them on current releases, so bind explicitly instead.
+    mcp.settings.host = os.getenv("MCP_HOST", "127.0.0.1")
+    mcp.settings.port = int(os.getenv("MCP_PORT", "8000"))
     mcp.run(transport="streamable-http")
 
 
