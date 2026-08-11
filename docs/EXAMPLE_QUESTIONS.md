@@ -25,10 +25,10 @@ Add an unquoted year alongside a quoted phrase to rank a specific cycle first, f
 
 ## Finding a survey and its cycles
 
-- Search Borealis for `"Survey of Household Spending"` and list the cycles.
-- Which years of `"Canadian Income Survey"` are available?
-- Find all `"Democracy Checkup"` cycles.
-- Search for `"Canadian Election Study"`. Which election years are covered?
+- ``Search Borealis for `"Survey of Household Spending"` and list the cycles.``
+- ``Which years of `"Canadian Income Survey"` are available?``
+- ``Find all `"Democracy Checkup"` cycles.``
+- ``Search for `"Canadian Election Study"`. Which election years are covered?``
 
 Verified counts for common holdings, each returning the survey itself as the top result:
 
@@ -49,9 +49,9 @@ Verified counts for common holdings, each returning the survey itself as the top
 
 ## Files, formats, and access
 
-- For `"Labour Force Survey"` February 2024, what formats is the microdata in, and is anything restricted?
-- List every file in the Canadian Community Health Survey 2022 Annual Component with size and format.
-- Does `"Survey of Financial Security"` 2019 include SPSS or SAS setup files?
+- For ``"Labour Force Survey"`` February 2024, what formats is the microdata in, and is anything restricted?
+- `List every file in the Canadian Community Health Survey 2022 Annual Component with size and format.`
+- ``Does `"Survey of Financial Security"` 2019 include SPSS or SAS setup files?``
 
 The February 2024 Labour Force Survey returns a 10.9 MB tab-delimited microdata file, a 2.4 MB archive, a codebook archive, and five PDF guides, none restricted.
 
@@ -59,17 +59,17 @@ The February 2024 Labour Force Survey returns a 10.9 MB tab-delimited microdata 
 
 Requires the `pdf` optional dependency.
 
-- Open the CCHS 2022 user guide and explain how the income variables are derived.
-- What does the Labour Force Survey guide say about the 2025 rebasing?
-- Read the data dictionary for CCHS 2022 and list the derived variables.
-- Summarise the sampling design section of the Indigenous Peoples Survey documentation.
+- `Open the CCHS 2022 user guide and explain how the income variables are derived.`
+- `What does the Labour Force Survey guide say about the 2025 rebasing?`
+- `Read the data dictionary for CCHS 2022 and list the derived variables.`
+- `Summarise the sampling design section of the Indigenous Peoples Survey documentation.`
 
 `CCHS_2022_User_Guide.pdf` extracts to 3008 lines of text, retrievable in bounded line ranges.
 
 ## Microdata profiling
 
-- Profile the Labour Force Survey February 2024 microdata and show the distribution of `LFSSTAT`.
-- How many columns are in the National Travel Survey 2022 visit file, and which have missing values?
+- ``Profile the Labour Force Survey February 2024 microdata and show the distribution of `LFSSTAT`.``
+- `How many columns are in the National Travel Survey 2022 visit file, and which have missing values?`
 
 Profiling the 10.9 MB Labour Force Survey file reads 100000 rows and returns per-column statistics, for example `LFSSTAT` with four distinct values distributed 53626, 37835, 4741, and 3798. Profiling files of this size requires `BOREALIS_MAX_FILE_BYTES` at its 25 MB default rather than a smaller limit.
 
@@ -77,17 +77,17 @@ Profile statistics describe rows read from a file. They do not establish that on
 
 ## Multi-step research questions
 
-- Find the CCHS 2022 PUMF, profile the main data file, then use the user guide to explain what the most frequent variables mean.
-- Compare the file lists of `"Canadian Election Study"` 2021 and 2025. What changed?
-- I need postal code geography for the 2021 Census. Which `"Postal Code Conversion File"` version should I use, and what documentation comes with it?
+- `Find the CCHS 2022 PUMF, profile the main data file, then use the user guide to explain what the most frequent variables mean.`
+- ``Compare the file lists of `"Canadian Election Study"` 2021 and 2025. What changed?``
+- ``I need postal code geography for the 2021 Census. Which `"Postal Code Conversion File"` version should I use, and what documentation comes with it?``
 
 ## Institution and geography
 
 An institution filter limits results to a publishing Dataverse subtree. A geographic filter describes the place a dataset is about. The two answer different questions.
 
-- Which `"Labour Force Survey"` datasets were published by University of Toronto?
-- Find water quality datasets about Alberta.
-- What is the difference between datasets from University of Alberta and datasets about Alberta?
+- ``Which `"Labour Force Survey"` datasets were published by University of Toronto?``
+- `Find water quality datasets about Alberta.`
+- `What is the difference between datasets from University of Alberta and datasets about Alberta?`
 
 Geographic coverage metadata is sparsely populated in Borealis. Province and country filters return usable result sets, while city filters return very few matches even for major cities, so a city filter that returns nothing usually reflects missing metadata rather than an absent dataset.
 
