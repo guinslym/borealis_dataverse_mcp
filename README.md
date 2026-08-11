@@ -28,6 +28,10 @@ An **institution filter** limits results to a publishing Dataverse subtree. A **
 
 The toolkit reports deposited metadata and computed file statistics. It does not assume that one row represents one person, sample, or observation unless the dataset documentation establishes that interpretation.
 
+## Example questions
+
+[`docs/EXAMPLE_QUESTIONS.md`](docs/EXAMPLE_QUESTIONS.md) collects questions researchers ask about Statistics Canada and Health Canada surveys, including the phrase-quoting rule that keeps survey titles such as `"Canadian Community Health Survey"` from matching thousands of unrelated records.
+
 ## Installation
 
 ```bash
@@ -126,6 +130,8 @@ Custom connectors require a paid Claude plan.
 - “Search Borealis for dementia datasets from University of Toronto.”
 - “Show the full metadata for that dataset and keep the DOI.”
 - “List the CSV files in it and profile the largest one.”
+
+See [`docs/EXAMPLE_QUESTIONS.md`](docs/EXAMPLE_QUESTIONS.md) for survey-specific questions.
 
 A published endpoint is reachable by anyone who learns the URL. When `BOREALIS_API_KEY` is set, those requests query Borealis with your token and can reach content restricted to you. Add authentication before leaving an endpoint running.
 
