@@ -102,6 +102,14 @@ cloudflared tunnel --url http://localhost:8000
 
 Cloudflare prints an address such as `https://<subdomain>.trycloudflare.com`. Append `/mcp` to form the connector URL. That address stops working when the tunnel stops.
 
+The MCP SDK's DNS rebinding protection trusts only localhost, so a public hostname is rejected with `421 Invalid Host header` until it is named explicitly. Restart the server with the tunnel hostname, without the scheme:
+
+```bash
+MCP_ALLOWED_HOSTS=<subdomain>.trycloudflare.com borealis-mcp-http
+```
+
+Use `MCP_ALLOWED_ORIGINS` to override the browser origins, which otherwise default to `https://` plus each allowed host. Quick tunnels get a new hostname every restart, so this value changes each time.
+
 For shared or long-lived access, deploy the container behind a real HTTPS host and put authentication in front of it.
 
 ### 3. Add the custom connector

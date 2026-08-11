@@ -100,12 +100,26 @@ def main() -> None:
     mcp.run(transport="stdio")
 
 
+def _split_env_list(name: str) -> list[str]:
+    return [item.strip() for item in os.getenv(name, "").split(",") if item.strip()]
+
+
 def main_http() -> None:
     """Run Streamable HTTP MCP for Claude web, ChatGPT, and other remote MCP clients."""
     # FastMCP reads FASTMCP_HOST and FASTMCP_PORT through pydantic-settings, which silently
     # fails to resolve them on current releases, so bind explicitly instead.
     mcp.settings.host = os.getenv("MCP_HOST", "127.0.0.1")
     mcp.settings.port = int(os.getenv("MCP_PORT", "8000"))
+
+    # DNS rebinding protection trusts only localhost by default, so a tunnel or proxy hostname
+    # must be named explicitly before a remote client can reach the endpoint.
+    allowed_hosts = _split_env_list("MCP_ALLOWED_HOSTS")
+    security = mcp.settings.transport_security
+    if allowed_hosts and security is not None:
+        allowed_origins = _split_env_list("MCP_ALLOWED_ORIGINS") or [f"https://{host}" for host in allowed_hosts]
+        security.allowed_hosts = [*security.allowed_hosts, *allowed_hosts]
+        security.allowed_origins = [*security.allowed_origins, *allowed_origins]
+
     mcp.run(transport="streamable-http")
 
 
