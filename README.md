@@ -17,7 +17,7 @@ This project began as an introduction to creating an MCP server. Version 0.3.0 r
 - Pagination, sorting, and publication-date filters
 - Complete deposited dataset metadata
 - Version-aware file listing
-- Text, Word, and PDF retrieval with line ranges, covering survey user guides and codebooks
+- Text, Word, and PDF retrieval with line ranges, covering survey user guides and PDF codebooks (codebooks distributed as `.zip` archives are listed but not extracted)
 - CSV/TSV profiling: rows, columns, missing values, distinct values, common values, and numeric ranges
 - Structured provenance and interpretation warnings
 - Optional Borealis API token for content visible to that token

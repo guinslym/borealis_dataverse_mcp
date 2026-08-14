@@ -3,9 +3,9 @@
 The toolkit separates Borealis-specific research logic from the protocol used to expose it.
 
 ```text
-ChatGPT / remote MCP clients ── Streamable HTTP MCP ┐
-Claude Desktop / local clients ── stdio MCP         ├── BorealisService ── BorealisClient ── Borealis API
-Other applications ────────────── REST API           ┘
+Claude web / remote MCP clients ── Streamable HTTP MCP ┐
+Claude Desktop / local clients ── stdio MCP            ├── BorealisService ── BorealisClient ── Borealis API
+Other applications ────────────── REST API             ┘
 ```
 
 ## Modules
