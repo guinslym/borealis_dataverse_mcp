@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "borealis": {
+      "type": "local",
+      "command": ["uv", "run", "--project", ".", "borealis-mcp"],
+      "cwd": ".",
+      "enabled": true
+    }
+  }
+}
