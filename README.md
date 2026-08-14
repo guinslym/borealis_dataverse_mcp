@@ -34,6 +34,24 @@ The toolkit reports deposited metadata and computed file statistics. It does not
 
 [`docs/EXAMPLE_QUESTIONS.md`](docs/EXAMPLE_QUESTIONS.md) collects questions researchers ask about Statistics Canada and Health Canada surveys, including the phrase-quoting rule that keeps survey titles such as `"Canadian Community Health Survey"` from matching thousands of unrelated records.
 
+## Screenshots
+
+Research questions answered through Claude with the toolkit connected:
+
+| | |
+| --- | --- |
+| ![Labour Force Survey microdata profiling](screenshots/LabourForceSurvey_MicrodataProfiling.jpg)<br>Profiling large microdata and working around the file-size cap | ![Indigenous Peoples Survey sampling design summary](screenshots/IndigenousPeoplesSurvey_SamplingDesignSummary.jpg)<br>Summarizing a sampling design section from survey documentation |
+| ![CCHS 2022 derived variables list](screenshots/CCHS2022_DerivedVariablesList.jpg)<br>Listing derived variables from a data dictionary | ![Survey of Financial Security SPSS and SAS files](screenshots/SurveyOfFinancialSecurity_SPSS_SAS_Files.jpg)<br>Checking which statistical setup files a dataset includes |
+| ![Democracy Checkup all cycles list](screenshots/DemocracyCheckup_AllCyclesList.jpg)<br>Finding every cycle of a recurring survey | ![Canadian Income Survey years available](screenshots/CanadianIncomeSurvey_YearsAvailable.jpg)<br>Listing which years of a survey are deposited |
+| ![Survey of Household Spending all cycles](screenshots/SurveyOfHouseholdSpending_AllCycles.jpg)<br>Listing cycles across PUMF and aggregate formats | |
+
+Connecting the toolkit as a remote MCP endpoint:
+
+| | |
+| --- | --- |
+| ![Claude web connector tool permissions](screenshots/ClaudeConnector_ToolPermissions.jpg)<br>Reviewing tool permissions after connecting | ![Claude web add custom connector dialog](screenshots/ClaudeConnector_AddCustomConnectorDialog.jpg)<br>Adding the toolkit as a custom connector |
+| ![Cloudflare tunnel healthy status](screenshots/CloudflareTunnel_BorealisMCP_Healthy.jpg)<br>A Cloudflare Tunnel publishing the local server over HTTPS | ![Cloudflare dashboard account overview](screenshots/CloudflareDashboard_AccountOverview.jpg)<br>Cloudflare account dashboard |
+
 ## Installation
 
 ```bash
