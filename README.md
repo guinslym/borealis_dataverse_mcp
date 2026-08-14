@@ -249,7 +249,3 @@ ruff check src tests
 ## License
 
 GPLv3. See [`LICENSE`](LICENSE).
-
-## Acknowledgments
-
-Powered by the Borealis Dataverse API and built using the Model Context Protocol. The project’s initial Python implementation was developed with substantial assistance from Claude; the toolkit refactor was developed with assistance from ChatGPT.
