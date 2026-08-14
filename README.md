@@ -8,6 +8,8 @@ A reusable, open-source toolkit for discovering and inspecting research datasets
 
 This project began as an introduction to creating an MCP server. Version 0.3.0 reorganizes it as a maintainable research toolkit rather than a single-host demonstration.
 
+This repository is an enhanced version of the original [`borealis_dataverse_mcp`](https://github.com/jesswhyte/borealis_dataverse_mcp) by [jesswhyte](https://github.com/jesswhyte), extended with the REST API, Streamable HTTP transport, institution/geographic filtering, tabular profiling, and the rest of the toolkit described below.
+
 ## Capabilities
 
 - Dataset-only search by default
