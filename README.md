@@ -3,7 +3,7 @@
 A reusable, open-source toolkit for discovering and inspecting research datasets in [Borealis Dataverse](https://borealisdata.ca). The same Borealis research functions are available through:
 
 - **Local stdio MCP** for Claude Desktop, Claude Code, and other local MCP hosts
-- **Streamable HTTP MCP** for Claude on the web, ChatGPT, and other remote MCP clients
+- **Streamable HTTP MCP** for Claude on the web and other remote MCP clients
 - **REST API** for applications that do not support MCP
 
 This project began as an introduction to creating an MCP server. Version 0.3.0 reorganizes it as a maintainable research toolkit rather than a single-host demonstration.
@@ -134,20 +134,6 @@ Custom connectors require a paid Claude plan.
 See [`docs/EXAMPLE_QUESTIONS.md`](docs/EXAMPLE_QUESTIONS.md) for survey-specific questions.
 
 A published endpoint is reachable by anyone who learns the URL. When `BOREALIS_API_KEY` is set, those requests query Borealis with your token and can reach content restricted to you. Add authentication before leaving an endpoint running.
-
-## Run for ChatGPT using Streamable HTTP MCP
-
-```bash
-borealis-mcp-http
-```
-
-The default MCP endpoint is:
-
-```text
-http://localhost:8000/mcp
-```
-
-ChatGPT requires a reachable remote MCP endpoint. For testing from a local machine, use an approved secure tunnel; for shared use, deploy behind HTTPS and add appropriate authentication. See [`docs/CHATGPT.md`](docs/CHATGPT.md).
 
 ## Run the optional REST API
 

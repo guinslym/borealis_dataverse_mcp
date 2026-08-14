@@ -116,4 +116,4 @@ Most survey microdata in Borealis is deposited through Odesi, so an institution 
 - **Proprietary microdata formats.** SPSS, Stata, and Excel files are listed but not parsed.
 - **Restricted content.** Files restricted in Borealis require a token with access to them.
 
-See [`../README.md`](../README.md) for installation and for connecting the toolkit to Claude, ChatGPT, and other MCP hosts.
+See [`../README.md`](../README.md) for installation and for connecting the toolkit to Claude and other MCP hosts.
