@@ -50,7 +50,6 @@ Connecting the toolkit as a remote MCP endpoint:
 | | |
 | --- | --- |
 | ![Claude web connector tool permissions](screenshots/ClaudeConnector_ToolPermissions.jpg)<br>Reviewing tool permissions after connecting | ![Claude web add custom connector dialog](screenshots/ClaudeConnector_AddCustomConnectorDialog.jpg)<br>Adding the toolkit as a custom connector |
-| ![Cloudflare tunnel healthy status](screenshots/CloudflareTunnel_BorealisMCP_Healthy.jpg)<br>A Cloudflare Tunnel publishing the local server over HTTPS | ![Cloudflare dashboard account overview](screenshots/CloudflareDashboard_AccountOverview.jpg)<br>Cloudflare account dashboard |
 
 ## Installation
 
