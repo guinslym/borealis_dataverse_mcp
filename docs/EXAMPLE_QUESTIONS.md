@@ -91,6 +91,24 @@ An institution filter limits results to a publishing Dataverse subtree. A geogra
 
 Geographic coverage metadata is sparsely populated in Borealis. Province and country filters return usable result sets, while city filters return very few matches even for major cities, so a city filter that returns nothing usually reflects missing metadata rather than an absent dataset.
 
+## Restricting search to the Odesi collection
+
+Borealis hosts many collections. [Odesi](https://odesi.ca) is a social science data collection within Borealis (Dataverse alias `odesi`) covering survey microdata, public opinion polls, and administrative data curated by Canadian academic libraries. The institution filter accepts any Dataverse alias, not only university names, so `odesi` narrows a search to that collection the same way `"University of Toronto"` narrows one to that institution's Dataverse subtree.
+
+- ``Search Borealis within the Odesi collection for `"Canadian Community Health Survey"`.``
+- ``Find `"Labour Force Survey"` datasets published in the Odesi collection.``
+- `List General Social Survey cycles available through Odesi.`
+
+Verified counts, `odesi` collection vs. all of Borealis:
+
+| Query | Odesi | All of Borealis |
+| --- | --- | --- |
+| `"Labour Force Survey"` | 3529 | 3552 |
+| `"Survey of Household Spending"` | 186 | 195 |
+| `"General Social Survey"` | 122 | 147 |
+
+Most survey microdata in Borealis is deposited through Odesi, so an institution filter of `odesi` mainly excludes unrelated deposits from other collections (administrative datasets, institutional research data, and similar) rather than losing survey coverage.
+
 ## Questions this toolkit cannot answer
 
 - **Codebooks distributed as archives.** Files such as `LFS_PUMF_EPA_FGMD_codebook.zip` are listed but not extracted, so value labels are unavailable unless a PDF guide in the same dataset documents them.
