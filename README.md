@@ -42,10 +42,9 @@ Research questions answered through Claude with the toolkit connected:
 
 | | |
 | --- | --- |
-| ![Labour Force Survey microdata profiling](screenshots/LabourForceSurvey_MicrodataProfiling.jpg)<br>Profiling large microdata and working around the file-size cap | ![Indigenous Peoples Survey sampling design summary](screenshots/IndigenousPeoplesSurvey_SamplingDesignSummary.jpg)<br>Summarizing a sampling design section from survey documentation |
-| ![CCHS 2022 derived variables list](screenshots/CCHS2022_DerivedVariablesList.jpg)<br>Listing derived variables from a data dictionary | ![Survey of Financial Security SPSS and SAS files](screenshots/SurveyOfFinancialSecurity_SPSS_SAS_Files.jpg)<br>Checking which statistical setup files a dataset includes |
-| ![Democracy Checkup all cycles list](screenshots/DemocracyCheckup_AllCyclesList.jpg)<br>Finding every cycle of a recurring survey | ![Canadian Income Survey years available](screenshots/CanadianIncomeSurvey_YearsAvailable.jpg)<br>Listing which years of a survey are deposited |
-| ![Survey of Household Spending all cycles](screenshots/SurveyOfHouseholdSpending_AllCycles.jpg)<br>Listing cycles across PUMF and aggregate formats | |
+| ![Indigenous Peoples Survey sampling design summary](screenshots/IndigenousPeoplesSurvey_SamplingDesignSummary.jpg)<br>Summarizing a sampling design section from survey documentation | ![CCHS 2022 derived variables list](screenshots/CCHS2022_DerivedVariablesList.jpg)<br>Listing derived variables from a data dictionary |
+| ![Survey of Financial Security SPSS and SAS files](screenshots/SurveyOfFinancialSecurity_SPSS_SAS_Files.jpg)<br>Checking which statistical setup files a dataset includes | ![Democracy Checkup all cycles list](screenshots/DemocracyCheckup_AllCyclesList.jpg)<br>Finding every cycle of a recurring survey |
+| ![Canadian Income Survey years available](screenshots/CanadianIncomeSurvey_YearsAvailable.jpg)<br>Listing which years of a survey are deposited | ![Survey of Household Spending all cycles](screenshots/SurveyOfHouseholdSpending_AllCycles.jpg)<br>Listing cycles across PUMF and aggregate formats |
 
 Connecting the toolkit as a remote MCP endpoint:
 
