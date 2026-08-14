@@ -36,6 +36,8 @@ The toolkit reports deposited metadata and computed file statistics. It does not
 
 ## Screenshots
 
+**[Video walkthrough](screenshots/OdesiCollection_RacializedIndigenousPopulations_Demo.mp4):** searching the Odesi collection for datasets on racialized and Indigenous populations in Canada, drilling into a specific Aboriginal Peoples Survey cycle's documentation to see how it defines identity and ethnicity variables, then profiling one of those variables for real distribution numbers.
+
 Research questions answered through Claude with the toolkit connected:
 
 | | |
