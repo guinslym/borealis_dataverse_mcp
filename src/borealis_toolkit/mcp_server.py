@@ -5,6 +5,7 @@ from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
 
+from .errors import BorealisError
 from .service import BorealisService
 
 mcp = FastMCP(
@@ -95,6 +96,57 @@ async def profile_tabular_file(
 ) -> dict:
     """Profile CSV/TSV columns, missing values, distinct values, common values, and numeric ranges."""
     return (await service.profile_tabular_file(file_id, filename=filename, delimiter=delimiter, max_rows=max_rows)).to_dict()
+
+
+@mcp.tool()
+async def get_variable_metadata(
+    file_id: str,
+    include_summary_stats: bool = True,
+    max_variables: int = 50,
+) -> dict:
+    """Retrieve DDI variable-level metadata for a tabular file in Borealis.
+
+    Returns variable names, labels, value labels, question text, universe,
+    data type, and optionally summary statistics for each variable. This is
+    the richest DDI content in Dataverse and is not covered by
+    get_dataset_metadata, which only returns dataset-level fields. Useful for
+    understanding what a dataset measures before downloading it.
+
+    Args:
+        file_id: The Dataverse file ID (integer, found in list_dataset_files output).
+        include_summary_stats: If True, include min/max/mean/freq counts per variable.
+        max_variables: Maximum number of variables to return (default 50, max 500).
+    """
+    try:
+        return (await service.get_variable_metadata(file_id, include_summary_stats=include_summary_stats, max_variables=max_variables)).to_dict()
+    except (BorealisError, ValueError) as exc:
+        return {"error": "Could not retrieve variable metadata.", "details": str(exc)}
+
+
+@mcp.tool()
+async def assess_metadata_quality(
+    persistent_id: str,
+    include_variable_check: bool = False,
+    version: str = ":latest",
+) -> dict:
+    """Assess the DDI metadata completeness and quality of a Borealis dataset.
+
+    Returns a score out of 100, a breakdown by category (discovery, coverage,
+    methodology, access), missing fields, present fields, and prioritized
+    recommendations for improving documentation. Useful for data curators,
+    depositors, and repository managers who want to see where a dataset's
+    documentation falls short of DDI best practice.
+
+    Args:
+        persistent_id: Dataset DOI or handle (e.g. "doi:10.5683/SP3/ABCDEF").
+        include_variable_check: If True, also check variable-level DDI metadata
+                                (slower — makes extra API calls).
+        version: Dataset version to check when include_variable_check is True (default ":latest").
+    """
+    try:
+        return (await service.assess_metadata_quality(persistent_id, include_variable_check=include_variable_check, version=version)).to_dict()
+    except (BorealisError, ValueError) as exc:
+        return {"error": "Could not assess metadata quality.", "details": str(exc)}
 
 
 @mcp.tool()

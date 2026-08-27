@@ -6,7 +6,13 @@ from typing import Any
 import httpx
 
 from .config import Settings
-from .errors import BorealisAccessError, BorealisError, BorealisFileTooLargeError, BorealisNotFoundError
+from .errors import (
+    BorealisAccessError,
+    BorealisError,
+    BorealisFileTooLargeError,
+    BorealisNotFoundError,
+    BorealisUnsupportedFileError,
+)
 
 
 class BorealisClient:
@@ -50,6 +56,36 @@ class BorealisClient:
             if isinstance(payload, dict) and payload.get("status") not in {None, "OK"}:
                 raise BorealisError(f"Borealis API returned status {payload.get('status')!r}")
             return payload, used_auth
+
+    async def request_text(
+        self,
+        method: str,
+        endpoint: str,
+        *,
+        params: dict[str, Any] | list[tuple[str, Any]] | None = None,
+        accept: str | None = None,
+    ) -> tuple[str, bool]:
+        """GET/POST a non-JSON payload (e.g. DDI XML) and return the raw text."""
+        url = f"{self.settings.api_base_url.rstrip('/')}/{endpoint.lstrip('/')}"
+        used_auth = self.settings.authentication_configured
+        async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds, follow_redirects=True) as client:
+            response = await client.request(method, url, params=params, headers=self._headers(accept=accept))
+            if response.status_code == 401 and used_auth:
+                used_auth = False
+                response = await client.request(method, url, params=params, headers=self._headers(accept=accept, authenticated=False))
+            if response.status_code == 404:
+                raise BorealisNotFoundError(f"Borealis resource not found: {url}")
+            if response.status_code in {401, 403}:
+                raise BorealisAccessError(f"Borealis denied access ({response.status_code}).")
+            if response.status_code == 400:
+                # Dataverse returns 400 (not 404) when a file exists but has no DDI to serve,
+                # e.g. it was never tabular-ingested.
+                raise BorealisUnsupportedFileError(f"Borealis rejected the request: {response.text[:300]}")
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                raise BorealisError(f"Borealis API returned HTTP {response.status_code}: {response.text[:500]}") from exc
+            return response.text, used_auth
 
     async def download_limited(self, file_id: str) -> tuple[bytes, str, bool]:
         endpoint = f"access/datafile/{file_id}"

@@ -204,6 +204,12 @@ Returns a bounded line range from a text, `.docx`, or `.pdf` file. PDF text extr
 ### `profile_tabular_file`
 Profiles CSV or TSV content. Results include a warning against interpreting row counts as entity counts without documentation.
 
+### `get_variable_metadata`
+Parses a tabular file's DDI codebook and returns per-variable labels, value labels, question text, universe, data type, and optionally summary statistics. This is the richest DDI content Dataverse exposes and is not covered by `get_dataset_metadata`.
+
+### `assess_metadata_quality`
+Scores a dataset's DDI metadata completeness against a 15-field, DDI-informed rubric (0-100, letter grade), grouped into discovery/coverage/methodology/access categories, with prioritized recommendations for missing fields. Pass `include_variable_check=True` to also factor in whether the dataset's tabular files carry variable-level documentation. Works against any public Dataverse installation.
+
 ### `get_server_status`
 Returns toolkit version, API target, configured limits, authentication state, and available capabilities.
 
@@ -218,6 +224,8 @@ src/borealis_toolkit/
   institutions.py    Institution aliases
   models.py          Structured results and provenance
   config.py          Environment configuration
+  ddi.py             DDI codebook XML parsing
+  quality.py         DDI metadata completeness scoring rubric
 ```
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the design.
